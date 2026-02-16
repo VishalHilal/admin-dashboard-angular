@@ -1,1 +1,65 @@
-<h1> this is dashboard page </h1>
+<div class="max-w-7xl mx-auto p-5 font-sans">
+  <header class="flex justify-between items-center mb-8 pb-5 border-b-2 border-gray-200">
+    <h1 class="m-0 text-gray-800 text-4xl font-bold">Dashboard</h1>
+    <button class="bg-blue-500 text-white border-none px-5 py-2.5 rounded-lg cursor-pointer text-sm font-medium transition-all duration-200 hover:bg-blue-600 hover:-translate-y-0.5" (click)="refreshData()">
+      Refresh
+    </button>
+  </header>
+  
+  <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex items-center gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <div class="text-4xl w-15 h-15 flex items-center justify-center bg-gray-100 rounded-xl">👥</div>
+      <div class="stat-content">
+        <h3 class="m-0 mb-2 text-gray-500 text-sm font-medium uppercase tracking-wide">Total Users</h3>
+        <p class="m-0 text-gray-800 text-2xl font-bold">{{ totalUsers.toLocaleString() }}</p>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex items-center gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <div class="text-4xl w-15 h-15 flex items-center justify-center bg-gray-100 rounded-xl">📦</div>
+      <div class="stat-content">
+        <h3 class="m-0 mb-2 text-gray-500 text-sm font-medium uppercase tracking-wide">Total Orders</h3>
+        <p class="m-0 text-gray-800 text-2xl font-bold">{{ totalOrders.toLocaleString() }}</p>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex items-center gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <div class="text-4xl w-15 h-15 flex items-center justify-center bg-gray-100 rounded-xl">💰</div>
+      <div class="stat-content">
+        <h3 class="m-0 mb-2 text-gray-500 text-sm font-medium uppercase tracking-wide">Total Revenue</h3>
+        <p class="m-0 text-gray-800 text-2xl font-bold">{{ formatCurrency(totalRevenue) }}</p>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex items-center gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <div class="text-4xl w-15 h-15 flex items-center justify-center bg-gray-100 rounded-xl">🟢</div>
+      <div class="stat-content">
+        <h3 class="m-0 mb-2 text-gray-500 text-sm font-medium uppercase tracking-wide">Active Users</h3>
+        <p class="m-0 text-gray-800 text-2xl font-bold">{{ activeUsers.toLocaleString() }}</p>
+      </div>
+    </div>
+  </section>
+  
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+      <h2 class="m-0 mb-5 text-gray-800 text-xl font-semibold">Recent Activities</h2>
+      <ul class="list-none p-0 m-0">
+        <li *ngFor="let activity of recentActivities; let i = index" 
+            class="flex items-center gap-3 py-3 border-b border-gray-100 transition-colors duration-200 hover:bg-gray-50 -mx-3 px-3 rounded-md last:border-b-0">
+          <span class="text-xl text-gray-500">📌</span>
+          <span class="text-gray-700 text-sm">{{ activity }}</span>
+        </li>
+      </ul>
+    </div>
+    
+    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+      <h2 class="m-0 mb-5 text-gray-800 text-xl font-semibold">Quick Actions</h2>
+      <div class="flex flex-col gap-3">
+        <button class="bg-gray-50 border border-gray-200 py-3 px-4 rounded-lg cursor-pointer text-sm font-medium text-gray-700 text-left transition-all duration-200 flex items-center gap-2 hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:translate-x-1">➕ Add User</button>
+        <button class="bg-gray-50 border border-gray-200 py-3 px-4 rounded-lg cursor-pointer text-sm font-medium text-gray-700 text-left transition-all duration-200 flex items-center gap-2 hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:translate-x-1">📊 View Reports</button>
+        <button class="bg-gray-50 border border-gray-200 py-3 px-4 rounded-lg cursor-pointer text-sm font-medium text-gray-700 text-left transition-all duration-200 flex items-center gap-2 hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:translate-x-1">⚙️ Settings</button>
+        <button class="bg-gray-50 border border-gray-200 py-3 px-4 rounded-lg cursor-pointer text-sm font-medium text-gray-700 text-left transition-all duration-200 flex items-center gap-2 hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:translate-x-1">📧 Send Email</button>
+      </div>
+    </div>
+  </section>
+</div>
