@@ -15,6 +15,10 @@ export class Dashboard implements OnInit {
   
   recentActivities: string[] = [];
   
+  // Chart data
+  monthlyRevenue: { month: string; revenue: number }[] = [];
+  maxRevenue: number = 0;
+  
   ngOnInit() {
     this.loadDashboardData();
   }
@@ -33,6 +37,18 @@ export class Dashboard implements OnInit {
       'New review submitted',
       'Payment processed'
     ];
+    
+    // Monthly revenue data for chart
+    this.monthlyRevenue = [
+      { month: 'Jan', revenue: 32000 },
+      { month: 'Feb', revenue: 28000 },
+      { month: 'Mar', revenue: 35000 },
+      { month: 'Apr', revenue: 42000 },
+      { month: 'May', revenue: 38000 },
+      { month: 'Jun', revenue: 45678 }
+    ];
+    
+    this.maxRevenue = Math.max(...this.monthlyRevenue.map(m => m.revenue));
   }
   
   refreshData() {
@@ -44,5 +60,9 @@ export class Dashboard implements OnInit {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
+  }
+  
+  getBarHeight(revenue: number): string {
+    return `${(revenue / this.maxRevenue) * 100}%`;
   }
 }
