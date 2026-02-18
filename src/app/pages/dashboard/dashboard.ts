@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [],
+  imports: [FormsModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -23,6 +24,12 @@ export class Dashboard implements OnInit {
   notifications: any[] = [];
   unreadCount: number = 0;
   showNotifications: boolean = false;
+  
+  // User table data
+  users: any[] = [];
+  filteredUsers: any[] = [];
+  searchTerm: string = '';
+  selectedStatus: string = 'all';
   
   ngOnInit() {
     this.loadDashboardData();
@@ -65,6 +72,20 @@ export class Dashboard implements OnInit {
     ];
     
     this.updateUnreadCount();
+    
+    // Sample user data
+    this.users = [
+      { id: 1, name: 'John Doe', email: 'john@example.com', status: 'active', joinDate: '2024-01-15', orders: 12 },
+      { id: 2, name: 'Jane Smith', email: 'jane@example.com', status: 'active', joinDate: '2024-01-20', orders: 8 },
+      { id: 3, name: 'Bob Johnson', email: 'bob@example.com', status: 'inactive', joinDate: '2024-02-01', orders: 5 },
+      { id: 4, name: 'Alice Brown', email: 'alice@example.com', status: 'active', joinDate: '2024-02-10', orders: 15 },
+      { id: 5, name: 'Charlie Wilson', email: 'charlie@example.com', status: 'pending', joinDate: '2024-02-15', orders: 3 },
+      { id: 6, name: 'Diana Davis', email: 'diana@example.com', status: 'active', joinDate: '2024-03-01', orders: 20 },
+      { id: 7, name: 'Edward Miller', email: 'edward@example.com', status: 'inactive', joinDate: '2024-03-05', orders: 7 },
+      { id: 8, name: 'Fiona Garcia', email: 'fiona@example.com', status: 'active', joinDate: '2024-03-10', orders: 11 }
+    ];
+    
+    this.filteredUsers = [...this.users];
   }
   
   refreshData() {
@@ -127,5 +148,36 @@ export class Dashboard implements OnInit {
       case 'info': return 'bg-blue-50 border-blue-200 text-blue-800';
       default: return 'bg-gray-50 border-gray-200 text-gray-800';
     }
+  }
+  
+  // Search and filter functionality
+  onSearchChange() {
+    this.filterUsers();
+  }
+  
+  onStatusChange() {
+    this.filterUsers();
+  }
+  
+  filterUsers() {
+    this.filteredUsers = this.users.filter(user => {
+      const matchesSearch = user.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+                           user.email.toLowerCase().includes(this.searchTerm.toLowerCase());
+      const matchesStatus = this.selectedStatus === 'all' || user.status === this.selectedStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }
+  
+  getStatusColor(status: string): string {
+    switch(status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'inactive': return 'bg-red-100 text-red-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  }
+  
+  getUserInitials(name: string): string {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
   }
 }

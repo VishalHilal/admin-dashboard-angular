@@ -136,6 +136,76 @@
     </div>
   </section>
   
+  <!-- User Management Table Section -->
+  <section class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-8">
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
+      <h2 class="m-0 text-gray-800 text-xl font-semibold">User Management</h2>
+      <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+        <input type="text" 
+               placeholder="Search users..." 
+               class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+               [(ngModel)]="searchTerm" 
+               (input)="onSearchChange()">
+        <select class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                [(ngModel)]="selectedStatus" 
+                (change)="onStatusChange()">
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="pending">Pending</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b border-gray-200">
+            <th class="text-left py-3 px-4 font-semibold text-gray-700">User</th>
+            <th class="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+            <th class="text-left py-3 px-4 font-semibold text-gray-700">Join Date</th>
+            <th class="text-left py-3 px-4 font-semibold text-gray-700">Orders</th>
+            <th class="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of filteredUsers" 
+              class="border-b border-gray-100 hover:bg-gray-50 transition-colors duration-150">
+            <td class="py-3 px-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                  {{ getUserInitials(user.name) }}
+                </div>
+                <div>
+                  <div class="font-medium text-gray-900">{{ user.name }}</div>
+                  <div class="text-sm text-gray-500">{{ user.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="py-3 px-4">
+              <span class="px-2 py-1 text-xs font-medium rounded-full" 
+                    [class]="getStatusColor(user.status)">
+                {{ user.status.charAt(0).toUpperCase() + user.status.slice(1) }}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-gray-700">{{ user.joinDate }}</td>
+            <td class="py-3 px-4 text-gray-700">{{ user.orders }}</td>
+            <td class="py-3 px-4">
+              <div class="flex gap-2">
+                <button class="text-blue-600 hover:text-blue-800 font-medium text-sm">Edit</button>
+                <button class="text-red-600 hover:text-red-800 font-medium text-sm">Delete</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div *ngIf="filteredUsers.length === 0" class="text-center py-8 text-gray-500">
+        No users found matching your criteria.
+      </div>
+    </div>
+  </section>
+  
   <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <div class="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
       <h2 class="m-0 mb-5 text-gray-800 text-xl font-semibold">Recent Activities</h2>
