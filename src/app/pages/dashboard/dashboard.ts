@@ -38,6 +38,19 @@ export class Dashboard implements OnInit {
   dateRange: string = 'all';
   selectedData: string = 'users';
   
+  // User profile management
+  editingUser: any = null;
+  showUserModal: boolean = false;
+  selectedUser: any = null;
+  userForm: any = {
+    name: '',
+    email: '',
+    status: 'active',
+    role: 'user',
+    phone: '',
+    address: ''
+  };
+  
   ngOnInit() {
     this.loadDashboardData();
   }
@@ -82,14 +95,14 @@ export class Dashboard implements OnInit {
     
     // Sample user data
     this.users = [
-      { id: 1, name: 'John Doe', email: 'john@example.com', status: 'active', joinDate: '2024-01-15', orders: 12 },
-      { id: 2, name: 'Jane Smith', email: 'jane@example.com', status: 'active', joinDate: '2024-01-20', orders: 8 },
-      { id: 3, name: 'Bob Johnson', email: 'bob@example.com', status: 'inactive', joinDate: '2024-02-01', orders: 5 },
-      { id: 4, name: 'Alice Brown', email: 'alice@example.com', status: 'active', joinDate: '2024-02-10', orders: 15 },
-      { id: 5, name: 'Charlie Wilson', email: 'charlie@example.com', status: 'pending', joinDate: '2024-02-15', orders: 3 },
-      { id: 6, name: 'Diana Davis', email: 'diana@example.com', status: 'active', joinDate: '2024-03-01', orders: 20 },
-      { id: 7, name: 'Edward Miller', email: 'edward@example.com', status: 'inactive', joinDate: '2024-03-05', orders: 7 },
-      { id: 8, name: 'Fiona Garcia', email: 'fiona@example.com', status: 'active', joinDate: '2024-03-10', orders: 11 }
+      { id: 1, name: 'John Doe', email: 'john@example.com', status: 'active', joinDate: '2024-01-15', orders: 12, role: 'admin', phone: '+1-555-0101', address: '123 Main St, New York, NY' },
+      { id: 2, name: 'Jane Smith', email: 'jane@example.com', status: 'active', joinDate: '2024-01-20', orders: 8, role: 'user', phone: '+1-555-0102', address: '456 Oak Ave, Los Angeles, CA' },
+      { id: 3, name: 'Bob Johnson', email: 'bob@example.com', status: 'inactive', joinDate: '2024-02-01', orders: 5, role: 'user', phone: '+1-555-0103', address: '789 Pine Rd, Chicago, IL' },
+      { id: 4, name: 'Alice Brown', email: 'alice@example.com', status: 'active', joinDate: '2024-02-10', orders: 15, role: 'manager', phone: '+1-555-0104', address: '321 Elm St, Houston, TX' },
+      { id: 5, name: 'Charlie Wilson', email: 'charlie@example.com', status: 'pending', joinDate: '2024-02-15', orders: 3, role: 'user', phone: '+1-555-0105', address: '654 Maple Dr, Phoenix, AZ' },
+      { id: 6, name: 'Diana Davis', email: 'diana@example.com', status: 'active', joinDate: '2024-03-01', orders: 20, role: 'admin', phone: '+1-555-0106', address: '987 Cedar Ln, Philadelphia, PA' },
+      { id: 7, name: 'Edward Miller', email: 'edward@example.com', status: 'inactive', joinDate: '2024-03-05', orders: 7, role: 'user', phone: '+1-555-0107', address: '147 Birch Way, San Antonio, TX' },
+      { id: 8, name: 'Fiona Garcia', email: 'fiona@example.com', status: 'active', joinDate: '2024-03-10', orders: 11, role: 'manager', phone: '+1-555-0108', address: '258 Spruce St, San Diego, CA' }
     ];
     
     this.filteredUsers = [...this.users];
@@ -426,5 +439,95 @@ export class Dashboard implements OnInit {
     printWindow.document.write(htmlContent);
     printWindow.document.close();
     printWindow.print();
+  }
+  
+  // User profile management methods
+  viewUser(userId: number) {
+    this.selectedUser = this.users.find(u => u.id === userId);
+    this.showUserModal = true;
+  }
+  
+  editUser(userId: number) {
+    const user = this.users.find(u => u.id === userId);
+    if (user) {
+      this.editingUser = { ...user };
+      this.userForm = {
+        name: user.name,
+        email: user.email,
+        status: user.status,
+        role: user.role || 'user',
+        phone: user.phone || '',
+        address: user.address || ''
+      };
+      this.showUserModal = true;
+    }
+  }
+  
+  addUser() {
+    this.editingUser = null;
+    this.userForm = {
+      name: '',
+      email: '',
+      status: 'active',
+      role: 'user',
+      phone: '',
+      address: ''
+    };
+    this.showUserModal = true;
+  }
+  
+  saveUser() {
+    if (this.editingUser) {
+      // Update existing user
+      const userIndex = this.users.findIndex(u => u.id === this.editingUser.id);
+      if (userIndex !== -1) {
+        this.users[userIndex] = {
+          ...this.users[userIndex],
+          ...this.userForm
+        };
+      }
+    } else {
+      // Add new user
+      const newUser = {
+        id: Math.max(...this.users.map(u => u.id)) + 1,
+        ...this.userForm,
+        joinDate: new Date().toISOString().split('T')[0],
+        orders: 0
+      };
+      this.users.push(newUser);
+    }
+    
+    this.filterUsers();
+    this.closeUserModal();
+  }
+  
+  deleteUser(userId: number) {
+    if (confirm('Are you sure you want to delete this user?')) {
+      this.users = this.users.filter(u => u.id !== userId);
+      this.filterUsers();
+    }
+  }
+  
+  closeUserModal() {
+    this.showUserModal = false;
+    this.selectedUser = null;
+    this.editingUser = null;
+    this.userForm = {
+      name: '',
+      email: '',
+      status: 'active',
+      role: 'user',
+      phone: '',
+      address: ''
+    };
+  }
+  
+  getRoleColor(role: string): string {
+    switch(role) {
+      case 'admin': return 'bg-purple-100 text-purple-800';
+      case 'manager': return 'bg-blue-100 text-blue-800';
+      case 'user': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   }
 }

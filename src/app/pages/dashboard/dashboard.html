@@ -162,6 +162,7 @@
         <thead>
           <tr class="border-b border-gray-200">
             <th class="text-left py-3 px-4 font-semibold text-gray-700">User</th>
+            <th class="text-left py-3 px-4 font-semibold text-gray-700">Role</th>
             <th class="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
             <th class="text-left py-3 px-4 font-semibold text-gray-700">Join Date</th>
             <th class="text-left py-3 px-4 font-semibold text-gray-700">Orders</th>
@@ -184,6 +185,12 @@
             </td>
             <td class="py-3 px-4">
               <span class="px-2 py-1 text-xs font-medium rounded-full" 
+                    [class]="getRoleColor(user.role)">
+                {{ user.role.charAt(0).toUpperCase() + user.role.slice(1) }}
+              </span>
+            </td>
+            <td class="py-3 px-4">
+              <span class="px-2 py-1 text-xs font-medium rounded-full" 
                     [class]="getStatusColor(user.status)">
                 {{ user.status.charAt(0).toUpperCase() + user.status.slice(1) }}
               </span>
@@ -192,8 +199,9 @@
             <td class="py-3 px-4 text-gray-700">{{ user.orders }}</td>
             <td class="py-3 px-4">
               <div class="flex gap-2">
-                <button class="text-blue-600 hover:text-blue-800 font-medium text-sm">Edit</button>
-                <button class="text-red-600 hover:text-red-800 font-medium text-sm">Delete</button>
+                <button class="text-blue-600 hover:text-blue-800 font-medium text-sm" (click)="viewUser(user.id)">View</button>
+                <button class="text-green-600 hover:text-green-800 font-medium text-sm" (click)="editUser(user.id)">Edit</button>
+                <button class="text-red-600 hover:text-red-800 font-medium text-sm" (click)="deleteUser(user.id)">Delete</button>
               </div>
             </td>
           </tr>
@@ -221,7 +229,7 @@
     <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
       <h2 class="m-0 mb-5 text-gray-800 text-xl font-semibold">Quick Actions</h2>
       <div class="flex flex-col gap-3">
-        <button class="bg-gray-50 border border-gray-200 py-3 px-4 rounded-lg cursor-pointer text-sm font-medium text-gray-700 text-left transition-all duration-200 flex items-center gap-2 hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:translate-x-1">➕ Add User</button>
+        <button class="bg-gray-50 border border-gray-200 py-3 px-4 rounded-lg cursor-pointer text-sm font-medium text-gray-700 text-left transition-all duration-200 flex items-center gap-2 hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:translate-x-1" (click)="addUser()">➕ Add User</button>
         <button class="bg-gray-50 border border-gray-200 py-3 px-4 rounded-lg cursor-pointer text-sm font-medium text-gray-700 text-left transition-all duration-200 flex items-center gap-2 hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:translate-x-1">📊 View Reports</button>
         <button class="bg-gray-50 border border-gray-200 py-3 px-4 rounded-lg cursor-pointer text-sm font-medium text-gray-700 text-left transition-all duration-200 flex items-center gap-2 hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:translate-x-1" (click)="openExportModal()">📤 Export Data</button>
         <button class="bg-gray-50 border border-gray-200 py-3 px-4 rounded-lg cursor-pointer text-sm font-medium text-gray-700 text-left transition-all duration-200 flex items-center gap-2 hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:translate-x-1" (click)="generateReport()">📄 Generate Report</button>
@@ -230,6 +238,135 @@
       </div>
     </div>
   </section>
+</div>
+
+<!-- User Profile Modal -->
+<div *ngIf="showUserModal" 
+     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="text-xl font-semibold text-gray-800">
+        {{ editingUser ? 'Edit User' : (selectedUser ? 'User Details' : 'Add New User') }}
+      </h3>
+      <button class="text-gray-500 hover:text-gray-700 text-2xl"
+              (click)="closeUserModal()">
+        ×
+      </button>
+    </div>
+    
+    <!-- View Mode -->
+    <div *ngIf="selectedUser && !editingUser" class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex items-center gap-4">
+          <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+            {{ getUserInitials(selectedUser.name) }}
+          </div>
+          <div>
+            <h4 class="font-semibold text-lg text-gray-800">{{ selectedUser.name }}</h4>
+            <p class="text-gray-600">{{ selectedUser.email }}</p>
+          </div>
+        </div>
+        
+        <div class="space-y-2">
+          <div><span class="font-medium">Role:</span> 
+            <span class="px-2 py-1 text-xs font-medium rounded-full" [class]="getRoleColor(selectedUser.role)">
+              {{ selectedUser.role.charAt(0).toUpperCase() + selectedUser.role.slice(1) }}
+            </span>
+          </div>
+          <div><span class="font-medium">Status:</span> 
+            <span class="px-2 py-1 text-xs font-medium rounded-full" [class]="getStatusColor(selectedUser.status)">
+              {{ selectedUser.status.charAt(0).toUpperCase() + selectedUser.status.slice(1) }}
+            </span>
+          </div>
+        </div>
+        
+        <div><span class="font-medium">Phone:</span> {{ selectedUser.phone || 'Not provided' }}</div>
+        <div><span class="font-medium">Address:</span> {{ selectedUser.address || 'Not provided' }}</div>
+        <div><span class="font-medium">Join Date:</span> {{ selectedUser.joinDate }}</div>
+        <div><span class="font-medium">Total Orders:</span> {{ selectedUser.orders }}</div>
+      </div>
+      
+      <div class="flex gap-3 mt-6">
+        <button class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200"
+                (click)="editUser(selectedUser.id)">
+          Edit User
+        </button>
+        <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                (click)="closeUserModal()">
+          Close
+        </button>
+      </div>
+    </div>
+    
+    <!-- Edit Mode -->
+    <div *ngIf="editingUser || !selectedUser" class="space-y-4">
+      <form (ngSubmit)="saveUser()">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+            <input type="text" 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [(ngModel)]="userForm.name"
+                   required>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+            <input type="email" 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [(ngModel)]="userForm.email"
+                   required>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+            <input type="tel" 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [(ngModel)]="userForm.phone">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+            <textarea class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows="3"
+                      [(ngModel)]="userForm.address"></textarea>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
+            <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [(ngModel)]="userForm.role">
+              <option value="user">User</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [(ngModel)]="userForm.status">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="pending">Pending</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="flex gap-3 mt-6">
+          <button type="button" 
+                  class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                  (click)="closeUserModal()">
+            Cancel
+          </button>
+          <button type="submit" 
+                  class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200">
+            {{ editingUser ? 'Update User' : 'Add User' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <!-- Export Modal -->
