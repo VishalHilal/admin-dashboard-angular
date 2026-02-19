@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [FormsModule],
+  imports: [FormsModule, CommonModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -30,6 +31,12 @@ export class Dashboard implements OnInit {
   filteredUsers: any[] = [];
   searchTerm: string = '';
   selectedStatus: string = 'all';
+  
+  // Export functionality
+  showExportModal: boolean = false;
+  exportFormat: string = 'csv';
+  dateRange: string = 'all';
+  selectedData: string = 'users';
   
   ngOnInit() {
     this.loadDashboardData();
@@ -179,5 +186,245 @@ export class Dashboard implements OnInit {
   
   getUserInitials(name: string): string {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  }
+  
+  // Export functionality
+  openExportModal() {
+    this.showExportModal = true;
+  }
+  
+  closeExportModal() {
+    this.showExportModal = false;
+  }
+  
+  exportData() {
+    let dataToExport: any[] = [];
+    
+    switch(this.selectedData) {
+      case 'users':
+        dataToExport = this.filteredUsers;
+        break;
+      case 'revenue':
+        dataToExport = this.monthlyRevenue;
+        break;
+      case 'activities':
+        dataToExport = this.recentActivities.map((activity, index) => ({
+          id: index + 1,
+          activity: activity,
+          timestamp: new Date().toISOString()
+        }));
+        break;
+    }
+    
+    if (this.exportFormat === 'csv') {
+      this.downloadCSV(dataToExport);
+    } else if (this.exportFormat === 'excel') {
+      this.downloadExcel(dataToExport);
+    } else if (this.exportFormat === 'pdf') {
+      this.downloadPDF(dataToExport);
+    }
+    
+    this.closeExportModal();
+  }
+  
+  downloadCSV(data: any[]) {
+    if (data.length === 0) return;
+    
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => headers.map(header => row[header]).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${this.selectedData}_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+  
+  downloadExcel(data: any[]) {
+    // Simple Excel-like CSV with proper formatting
+    if (data.length === 0) return;
+    
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join('\t'),
+      ...data.map(row => headers.map(header => row[header]).join('\t'))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${this.selectedData}_export_${new Date().toISOString().split('T')[0]}.xls`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+  
+  downloadPDF(data: any[]) {
+    // Simple PDF generation using window.print()
+    if (data.length === 0) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    const headers = Object.keys(data[0]);
+    let htmlContent = `
+      <html>
+        <head>
+          <title>${this.selectedData.toUpperCase()} Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #333; }
+            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .date { text-align: right; color: #666; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${this.selectedData.toUpperCase()} Report</h1>
+            <div class="date">Generated: ${new Date().toLocaleDateString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                ${headers.map(header => `<th>${header.toUpperCase()}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map(row => 
+                `<tr>${headers.map(header => `<td>${row[header] || ''}</td>`).join('')}</tr>`
+              ).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.print();
+  }
+  
+  generateReport() {
+    // Generate comprehensive report
+    const reportData = {
+      summary: {
+        totalUsers: this.totalUsers,
+        totalOrders: this.totalOrders,
+        totalRevenue: this.totalRevenue,
+        activeUsers: this.activeUsers,
+        generatedDate: new Date().toLocaleDateString()
+      },
+      users: this.filteredUsers,
+      revenue: this.monthlyRevenue,
+      activities: this.recentActivities
+    };
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    let htmlContent = `
+      <html>
+        <head>
+          <title>Dashboard Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1, h2 { color: #333; }
+            .summary { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 30px; }
+            .summary-item { display: inline-block; margin: 10px 20px 10px 0; }
+            .summary-label { font-weight: bold; color: #666; }
+            .summary-value { font-size: 1.2em; color: #333; }
+            table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .section { margin-bottom: 40px; }
+            .date { text-align: right; color: #666; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="date">Generated: ${new Date().toLocaleDateString()}</div>
+          <h1>Dashboard Report</h1>
+          
+          <div class="section">
+            <h2>Summary</h2>
+            <div class="summary">
+              <div class="summary-item">
+                <div class="summary-label">Total Users:</div>
+                <div class="summary-value">${reportData.summary.totalUsers.toLocaleString()}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Total Orders:</div>
+                <div class="summary-value">${reportData.summary.totalOrders.toLocaleString()}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Total Revenue:</div>
+                <div class="summary-value">${this.formatCurrency(reportData.summary.totalRevenue)}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Active Users:</div>
+                <div class="summary-value">${reportData.summary.activeUsers.toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="section">
+            <h2>User Data</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Join Date</th>
+                  <th>Orders</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${reportData.users.map(user => 
+                  `<tr>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td>${user.status}</td>
+                    <td>${user.joinDate}</td>
+                    <td>${user.orders}</td>
+                  </tr>`
+                ).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="section">
+            <h2>Revenue Trend</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${reportData.revenue.map(item => 
+                  `<tr>
+                    <td>${item.month}</td>
+                    <td>${this.formatCurrency(item.revenue)}</td>
+                  </tr>`
+                ).join('')}
+              </tbody>
+            </table>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.print();
   }
 }
