@@ -4,6 +4,7 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 
 interface User {
+  id: string;
   _id: string;
   name: string;
   email: string;
@@ -16,6 +17,7 @@ interface User {
 }
 
 interface Notification {
+  id: string;
   _id: string;
   type: string;
   message: string;
@@ -41,13 +43,20 @@ interface Activity {
 })
 export class DashboardService {
   private apiUrl = 'http://localhost:3000/api';
-  private socket: Socket;
   
   // Real-time data subjects
   private usersSubject = new BehaviorSubject<User[]>([]);
   private notificationsSubject = new BehaviorSubject<Notification[]>([]);
-  private statsSubject = new BehaviorSubject<Stats>({});
+  private statsSubject = new BehaviorSubject<Stats>({
+    totalUsers: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    activeUsers: 0
+  });
   private activitiesSubject = new BehaviorSubject<string[]>([]);
+  
+  // Socket.io client
+  private socket: Socket;
   
   // Observable streams
   users$ = this.usersSubject.asObservable();
@@ -56,6 +65,7 @@ export class DashboardService {
   activities$ = this.activitiesSubject.asObservable();
   
   constructor(private http: HttpClient) {
+    this.socket = io('http://localhost:3000');
     this.initSocket();
   }
   

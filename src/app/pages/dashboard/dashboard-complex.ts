@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { DashboardService } from '../../services/dashboard.service';
 
 interface User {
+  id: string;
   _id: string;
   name: string;
   email: string;
@@ -16,6 +17,7 @@ interface User {
 }
 
 interface Notification {
+  id: string;
   _id: string;
   type: string;
   message: string;
@@ -39,11 +41,38 @@ interface Stats {
 export class Dashboard implements OnInit {
   
   // Real-time data from service
-  users$ = this.dashboardService.users$;
-  notifications$ = this.dashboardService.notifications$;
-  stats$ = this.dashboardService.stats$;
-  activities$ = this.dashboardService.activities$;
-  revenue$ = this.dashboardService.getRevenue();
+  users$: any;
+  notifications$: any;
+  stats$: any;
+  activities$: any;
+  revenue$: any;
+  
+  constructor(private dashboardService: DashboardService) {
+    // Initialize service properties in constructor
+    this.users$ = this.dashboardService.users$;
+    this.notifications$ = this.dashboardService.notifications$;
+    this.stats$ = this.dashboardService.stats$;
+    this.activities$ = this.dashboardService.activities$;
+    this.revenue$ = this.dashboardService.getRevenue();
+  }
+  
+  // Local data properties
+  users: User[] = [];
+  notifications: Notification[] = [];
+  filteredUsers: User[] = [];
+  monthlyRevenue: any[] = [];
+  recentActivities: string[] = [];
+  
+  // Computed properties
+  maxRevenue: number = 0;
+  totalUsers: number = 0;
+  totalOrders: number = 0;
+  totalRevenue: number = 0;
+  activeUsers: number = 0;
+  
+  // UI state
+  showNotifications: boolean = false;
+  unreadCount: number = 0;
   
   // Local state for forms and modals
   editingUser: User | null = null;
@@ -68,7 +97,6 @@ export class Dashboard implements OnInit {
   searchTerm: string = '';
   selectedStatus: string = 'all';
   
-  constructor(private dashboardService: DashboardService) {}
   
   ngOnInit() {
     this.loadDashboardData();
@@ -80,6 +108,33 @@ export class Dashboard implements OnInit {
     this.dashboardService.loadUsers();
     this.dashboardService.loadNotifications();
     this.dashboardService.loadActivities();
+    
+    // Subscribe to observable data
+    this.users$.subscribe((users: User[]) => {
+      this.users = users;
+      this.filteredUsers = users;
+    });
+    
+    this.notifications$.subscribe((notifications: Notification[]) => {
+      this.notifications = notifications;
+      this.updateUnreadCount();
+    });
+    
+    this.stats$.subscribe((stats: Stats) => {
+      this.totalUsers = stats.totalUsers || 0;
+      this.totalOrders = stats.totalOrders || 0;
+      this.totalRevenue = stats.totalRevenue || 0;
+      this.activeUsers = stats.activeUsers || 0;
+    });
+    
+    this.activities$.subscribe((activities: string[]) => {
+      this.recentActivities = activities;
+    });
+    
+    this.revenue$.subscribe((revenue: any[]) => {
+      this.monthlyRevenue = revenue;
+      this.maxRevenue = Math.max(...revenue.map((r: any) => r.revenue), 0);
+    });
   }
   
   refreshData() {
@@ -102,7 +157,7 @@ export class Dashboard implements OnInit {
     this.showNotifications = !this.showNotifications;
   }
   
-  markAsRead(notificationId: number) {
+  markAsRead(notificationId: string) {
     const notification = this.notifications.find(n => n.id === notificationId);
     if (notification) {
       notification.read = true;
@@ -115,7 +170,7 @@ export class Dashboard implements OnInit {
     this.updateUnreadCount();
   }
   
-  deleteNotification(notificationId: number) {
+  deleteNotification(notificationId: string) {
     this.notifications = this.notifications.filter(n => n.id !== notificationId);
     this.updateUnreadCount();
   }
@@ -416,12 +471,12 @@ export class Dashboard implements OnInit {
   }
   
   // User profile management methods
-  viewUser(userId: number) {
-    this.selectedUser = this.users.find(u => u.id === userId);
+  viewUser(userId: string) {
+    this.selectedUser = this.users.find(u => u.id === userId) || null;
     this.showUserModal = true;
   }
   
-  editUser(userId: number) {
+  editUser(userId: string) {
     const user = this.users.find(u => u.id === userId);
     if (user) {
       this.editingUser = { ...user };
@@ -453,7 +508,7 @@ export class Dashboard implements OnInit {
   saveUser() {
     if (this.editingUser) {
       // Update existing user
-      const userIndex = this.users.findIndex(u => u.id === this.editingUser.id);
+      const userIndex = this.users.findIndex(u => u.id === this.editingUser!.id);
       if (userIndex !== -1) {
         this.users[userIndex] = {
           ...this.users[userIndex],
@@ -462,9 +517,15 @@ export class Dashboard implements OnInit {
       }
     } else {
       // Add new user
-      const newUser = {
-        id: Math.max(...this.users.map(u => u.id)) + 1,
-        ...this.userForm,
+      const newUser: User = {
+        id: Math.max(...this.users.map(u => parseInt(u.id))) + 1 + '',
+        _id: Math.random().toString(36).substr(2, 9),
+        name: this.userForm.name || '',
+        email: this.userForm.email || '',
+        status: this.userForm.status || 'active',
+        role: this.userForm.role || 'user',
+        phone: this.userForm.phone || '',
+        address: this.userForm.address || '',
         joinDate: new Date().toISOString().split('T')[0],
         orders: 0
       };
@@ -475,7 +536,7 @@ export class Dashboard implements OnInit {
     this.closeUserModal();
   }
   
-  deleteUser(userId: number) {
+  deleteUser(userId: string) {
     if (confirm('Are you sure you want to delete this user?')) {
       this.users = this.users.filter(u => u.id !== userId);
       this.filterUsers();

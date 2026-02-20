@@ -108,7 +108,12 @@ app.get('/api/users', async (req, res) => {
     }
     
     const users = await User.find(query).sort({ joinDate: -1 });
-    res.json(users);
+    // Add id field to match frontend expectations
+    const usersWithId = users.map(user => ({
+      ...user.toObject(),
+      id: user._id.toString()
+    }));
+    res.json(usersWithId);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -120,8 +125,14 @@ app.post('/api/users', async (req, res) => {
     const user = new User(req.body);
     await user.save();
     
+    // Add id field for frontend compatibility
+    const userWithId = {
+      ...user.toObject(),
+      id: user._id.toString()
+    };
+    
     // Emit real-time update
-    emitUpdate('userAdded', user);
+    emitUpdate('userAdded', userWithId);
     
     // Add activity
     const activity = new Activity({
@@ -130,7 +141,7 @@ app.post('/api/users', async (req, res) => {
     await activity.save();
     emitUpdate('newActivity', activity);
     
-    res.json(user);
+    res.json(userWithId);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -140,8 +151,14 @@ app.put('/api/users/:id', async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
     
+    // Add id field for frontend compatibility
+    const userWithId = {
+      ...user.toObject(),
+      id: user._id.toString()
+    };
+    
     // Emit real-time update
-    emitUpdate('userUpdated', user);
+    emitUpdate('userUpdated', userWithId);
     
     // Add activity
     const activity = new Activity({
@@ -150,7 +167,7 @@ app.put('/api/users/:id', async (req, res) => {
     await activity.save();
     emitUpdate('newActivity', activity);
     
-    res.json(user);
+    res.json(userWithId);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -180,7 +197,12 @@ app.delete('/api/users/:id', async (req, res) => {
 app.get('/api/notifications', async (req, res) => {
   try {
     const notifications = await Notification.find().sort({ timestamp: -1 }).limit(20);
-    res.json(notifications);
+    // Add id field to match frontend expectations
+    const notificationsWithId = notifications.map(notification => ({
+      ...notification.toObject(),
+      id: notification._id.toString()
+    }));
+    res.json(notificationsWithId);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -192,10 +214,16 @@ app.post('/api/notifications', async (req, res) => {
     const notification = new Notification(req.body);
     await notification.save();
     
-    // Emit real-time update
-    emitUpdate('newNotification', notification);
+    // Add id field for frontend compatibility
+    const notificationWithId = {
+      ...notification.toObject(),
+      id: notification._id.toString()
+    };
     
-    res.json(notification);
+    // Emit real-time update
+    emitUpdate('newNotification', notificationWithId);
+    
+    res.json(notificationWithId);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -210,8 +238,14 @@ app.put('/api/notifications/:id/read', async (req, res) => {
       { new: true }
     );
     
-    emitUpdate('notificationRead', notification);
-    res.json(notification);
+    // Add id field for frontend compatibility
+    const notificationWithId = {
+      ...notification.toObject(),
+      id: notification._id.toString()
+    };
+    
+    emitUpdate('notificationRead', notificationWithId);
+    res.json(notificationWithId);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -247,39 +281,39 @@ app.post('/api/seed', async (req, res) => {
     await Activity.deleteMany({});
     
     // Seed users
-    const users = [
-      { name: 'John Doe', email: 'john@example.com', status: 'active', role: 'admin', phone: '+1-555-0101', address: '123 Main St, New York, NY', orders: 12 },
-      { name: 'Jane Smith', email: 'jane@example.com', status: 'active', role: 'user', phone: '+1-555-0102', address: '456 Oak Ave, Los Angeles, CA', orders: 8 },
-      { name: 'Bob Johnson', email: 'bob@example.com', status: 'inactive', role: 'user', phone: '+1-555-0103', address: '789 Pine Rd, Chicago, IL', orders: 5 },
-      { name: 'Alice Brown', email: 'alice@example.com', status: 'active', role: 'manager', phone: '+1-555-0104', address: '321 Elm St, Houston, TX', orders: 15 },
-      { name: 'Charlie Wilson', email: 'charlie@example.com', status: 'pending', role: 'user', phone: '+1-555-0105', address: '654 Maple Dr, Phoenix, AZ', orders: 3 },
-      { name: 'Diana Davis', email: 'diana@example.com', status: 'active', role: 'admin', phone: '+1-555-0106', address: '987 Cedar Ln, Philadelphia, PA', orders: 20 },
-      { name: 'Edward Miller', email: 'edward@example.com', status: 'inactive', role: 'user', phone: '+1-555-0107', address: '147 Birch Way, San Antonio, TX', orders: 7 },
-      { name: 'Fiona Garcia', email: 'fiona@example.com', status: 'active', role: 'manager', phone: '+1-555-0108', address: '258 Spruce St, San Diego, CA', orders: 11 }
-    ];
+    // const users = [
+    //   { name: 'John Doe', email: 'john@example.com', status: 'active', role: 'admin', phone: '+1-555-0101', address: '123 Main St, New York, NY', orders: 12 },
+    //   { name: 'Jane Smith', email: 'jane@example.com', status: 'active', role: 'user', phone: '+1-555-0102', address: '456 Oak Ave, Los Angeles, CA', orders: 8 },
+    //   { name: 'Bob Johnson', email: 'bob@example.com', status: 'inactive', role: 'user', phone: '+1-555-0103', address: '789 Pine Rd, Chicago, IL', orders: 5 },
+    //   { name: 'Alice Brown', email: 'alice@example.com', status: 'active', role: 'manager', phone: '+1-555-0104', address: '321 Elm St, Houston, TX', orders: 15 },
+    //   { name: 'Charlie Wilson', email: 'charlie@example.com', status: 'pending', role: 'user', phone: '+1-555-0105', address: '654 Maple Dr, Phoenix, AZ', orders: 3 },
+    //   { name: 'Diana Davis', email: 'diana@example.com', status: 'active', role: 'admin', phone: '+1-555-0106', address: '987 Cedar Ln, Philadelphia, PA', orders: 20 },
+    //   { name: 'Edward Miller', email: 'edward@example.com', status: 'inactive', role: 'user', phone: '+1-555-0107', address: '147 Birch Way, San Antonio, TX', orders: 7 },
+    //   { name: 'Fiona Garcia', email: 'fiona@example.com', status: 'active', role: 'manager', phone: '+1-555-0108', address: '258 Spruce St, San Diego, CA', orders: 11 }
+    // ];
     
     await User.insertMany(users);
     
     // Seed notifications
-    const notifications = [
-      { type: 'success', message: 'New order received: #5678' },
-      { type: 'warning', message: 'Inventory low for product SKU-1234' },
-      { type: 'info', message: 'System maintenance scheduled for tonight' },
-      { type: 'error', message: 'Payment gateway timeout detected' },
-      { type: 'success', message: 'Monthly report generated successfully' }
-    ];
+    // const notifications = [
+    //   { type: 'success', message: 'New order received: #5678' },
+    //   { type: 'warning', message: 'Inventory low for product SKU-1234' },
+    //   { type: 'info', message: 'System maintenance scheduled for tonight' },
+    //   { type: 'error', message: 'Payment gateway timeout detected' },
+    //   { type: 'success', message: 'Monthly report generated successfully' }
+    // ];
     
     await Notification.insertMany(notifications);
     
     // Seed revenue data
-    const revenue = [
-      { month: 'Jan', revenue: 32000 },
-      { month: 'Feb', revenue: 28000 },
-      { month: 'Mar', revenue: 35000 },
-      { month: 'Apr', revenue: 42000 },
-      { month: 'May', revenue: 38000 },
-      { month: 'Jun', revenue: 45678 }
-    ];
+    // const revenue = [
+    //   { month: 'Jan', revenue: 32000 },
+    //   { month: 'Feb', revenue: 28000 },
+    //   { month: 'Mar', revenue: 35000 },
+    //   { month: 'Apr', revenue: 42000 },
+    //   { month: 'May', revenue: 38000 },
+    //   { month: 'Jun', revenue: 45678 }
+    // ];
     
     await Revenue.insertMany(revenue);
     
@@ -336,7 +370,13 @@ setInterval(async () => {
       });
       await notification.save();
       
-      emitUpdate('newNotification', notification);
+      // Add id field for frontend compatibility
+      const notificationWithId = {
+        ...notification.toObject(),
+        id: notification._id.toString()
+      };
+      
+      emitUpdate('newNotification', notificationWithId);
     }
   } catch (error) {
     console.error('Auto-refresh error:', error);

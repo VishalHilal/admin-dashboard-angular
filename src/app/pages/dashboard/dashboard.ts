@@ -1,6 +1,36 @@
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { DashboardService } from '../../services/dashboard.service';
+
+interface User {
+  id: string;
+  _id: string;
+  name: string;
+  email: string;
+  status: string;
+  role: string;
+  phone?: string;
+  address?: string;
+  joinDate: string;
+  orders: number;
+}
+
+interface Notification {
+  id: string;
+  _id: string;
+  type: string;
+  message: string;
+  time: string;
+  read: boolean;
+}
+
+interface Stats {
+  totalUsers: number;
+  totalOrders: number;
+  totalRevenue: number;
+  activeUsers: number;
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -10,34 +40,11 @@ import { CommonModule } from '@angular/common';
 })
 export class Dashboard implements OnInit {
   
-  // Basic properties for now - will connect to real API later
-  totalUsers: number = 0;
-  totalOrders: number = 0;
-  totalRevenue: number = 0;
-  activeUsers: number = 0;
-  
-  recentActivities: string[] = [];
-  monthlyRevenue: { month: string; revenue: number }[] = [];
-  maxRevenue: number = 0;
-  
-  notifications: any[] = [];
-  unreadCount: number = 0;
-  showNotifications: boolean = false;
-  
-  users: any[] = [];
-  filteredUsers: any[] = [];
-  searchTerm: string = '';
-  selectedStatus: string = 'all';
-  
-  showExportModal: boolean = false;
-  exportFormat: string = 'csv';
-  dateRange: string = 'all';
-  selectedData: string = 'users';
-  
-  editingUser: any = null;
+  // Local state for forms and modals
+  editingUser: User | null = null;
   showUserModal: boolean = false;
-  selectedUser: any = null;
-  userForm: any = {
+  selectedUser: User | null = null;
+  userForm: Partial<User> = {
     name: '',
     email: '',
     status: 'active',
@@ -46,58 +53,87 @@ export class Dashboard implements OnInit {
     address: ''
   };
   
+  // Export functionality
+  showExportModal: boolean = false;
+  exportFormat: string = 'csv';
+  dateRange: string = 'all';
+  selectedData: string = 'users';
+  
+  // Search and filter
+  searchTerm: string = '';
+  selectedStatus: string = 'all';
+  
+  // Local data for template
+  totalUsers: number = 0;
+  totalOrders: number = 0;
+  totalRevenue: number = 0;
+  activeUsers: number = 0;
+  users: User[] = [];
+  notifications: Notification[] = [];
+  filteredUsers: User[] = [];
+  recentActivities: string[] = [];
+  monthlyRevenue: { month: string; revenue: number }[] = [];
+  maxRevenue: number = 0;
+  unreadCount: number = 0;
+  showNotifications: boolean = false;
+  
+  // Real-time data from service (initialized after constructor)
+  users$!: any;
+  notifications$!: any;
+  stats$!: any;
+  activities$!: any;
+  revenue$!: any;
+  
+  constructor(private dashboardService: DashboardService) {
+    // Initialize observables after constructor
+    this.users$ = this.dashboardService.users$;
+    this.notifications$ = this.dashboardService.notifications$;
+    this.stats$ = this.dashboardService.stats$;
+    this.activities$ = this.dashboardService.activities$;
+    this.revenue$ = this.dashboardService.getRevenue();
+  }
+  
   ngOnInit() {
     this.loadDashboardData();
+    this.subscribeToRealTimeUpdates();
   }
   
   loadDashboardData() {
-    // For now, keep dummy data - will replace with API calls
-    this.totalUsers = 1250;
-    this.totalOrders = 847;
-    this.totalRevenue = 45678;
-    this.activeUsers = 342;
+    // Load all data from backend
+    this.dashboardService.loadStats();
+    this.dashboardService.loadUsers();
+    this.dashboardService.loadNotifications();
+    this.dashboardService.loadActivities();
     
-    this.recentActivities = [
-      'New user registration',
-      'Order #1234 completed',
-      'Product updated',
-      'New review submitted',
-      'Payment processed'
-    ];
+    // Load revenue data
+    this.dashboardService.getRevenue().subscribe(data => {
+      this.monthlyRevenue = data;
+      this.maxRevenue = Math.max(...data.map(m => m.revenue));
+    });
+  }
+  
+  subscribeToRealTimeUpdates() {
+    // Subscribe to real-time updates
+    this.dashboardService.stats$.subscribe(stats => {
+      this.totalUsers = stats.totalUsers || 0;
+      this.totalOrders = stats.totalOrders || 0;
+      this.totalRevenue = stats.totalRevenue || 0;
+      this.activeUsers = stats.activeUsers || 0;
+    });
     
-    this.monthlyRevenue = [
-      { month: 'Jan', revenue: 32000 },
-      { month: 'Feb', revenue: 28000 },
-      { month: 'Mar', revenue: 35000 },
-      { month: 'Apr', revenue: 42000 },
-      { month: 'May', revenue: 38000 },
-      { month: 'Jun', revenue: 45678 }
-    ];
+    this.dashboardService.users$.subscribe(users => {
+      this.users = users;
+      this.filteredUsers = users;
+    });
     
-    this.maxRevenue = Math.max(...this.monthlyRevenue.map(m => m.revenue));
+    this.dashboardService.notifications$.subscribe(notifications => {
+      this.notifications = notifications;
+      this.updateUnreadCount();
+    });
     
-    this.notifications = [
-      { id: 1, type: 'success', message: 'New order received: #5678', time: '2 min ago', read: false },
-      { id: 2, type: 'warning', message: 'Inventory low for product SKU-1234', time: '15 min ago', read: false },
-      { id: 3, type: 'info', message: 'System maintenance scheduled for tonight', time: '1 hour ago', read: true },
-      { id: 4, type: 'error', message: 'Payment gateway timeout detected', time: '2 hours ago', read: true },
-      { id: 5, type: 'success', message: 'Monthly report generated successfully', time: '3 hours ago', read: true }
-    ];
-    
-    this.updateUnreadCount();
-    
-    this.users = [
-      { id: 1, name: 'John Doe', email: 'john@example.com', status: 'active', joinDate: '2024-01-15', orders: 12, role: 'admin', phone: '+1-555-0101', address: '123 Main St, New York, NY' },
-      { id: 2, name: 'Jane Smith', email: 'jane@example.com', status: 'active', joinDate: '2024-01-20', orders: 8, role: 'user', phone: '+1-555-0102', address: '456 Oak Ave, Los Angeles, CA' },
-      { id: 3, name: 'Bob Johnson', email: 'bob@example.com', status: 'inactive', joinDate: '2024-02-01', orders: 5, role: 'user', phone: '+1-555-0103', address: '789 Pine Rd, Chicago, IL' },
-      { id: 4, name: 'Alice Brown', email: 'alice@example.com', status: 'active', joinDate: '2024-02-10', orders: 15, role: 'manager', phone: '+1-555-0104', address: '321 Elm St, Houston, TX' },
-      { id: 5, name: 'Charlie Wilson', email: 'charlie@example.com', status: 'pending', joinDate: '2024-02-15', orders: 3, role: 'user', phone: '+1-555-0105', address: '654 Maple Dr, Phoenix, AZ' },
-      { id: 6, name: 'Diana Davis', email: 'diana@example.com', status: 'active', joinDate: '2024-03-01', orders: 20, role: 'admin', phone: '+1-555-0106', address: '987 Cedar Ln, Philadelphia, PA' },
-      { id: 7, name: 'Edward Miller', email: 'edward@example.com', status: 'inactive', joinDate: '2024-03-05', orders: 7, role: 'user', phone: '+1-555-0107', address: '147 Birch Way, San Antonio, TX' },
-      { id: 8, name: 'Fiona Garcia', email: 'fiona@example.com', status: 'active', joinDate: '2024-03-10', orders: 11, role: 'manager', phone: '+1-555-0108', address: '258 Spruce St, San Diego, CA' }
-    ];
-    
-    this.filteredUsers = [...this.users];
+    this.dashboardService.activities$.subscribe(activities => {
+      this.recentActivities = activities;
+    });
   }
   
   refreshData() {
@@ -124,20 +160,23 @@ export class Dashboard implements OnInit {
     this.showNotifications = false;
   }
   
-  markAsRead(notificationId: number) {
+  markAsRead(notificationId: string) {
     const notification = this.notifications.find(n => n.id === notificationId);
     if (notification) {
-      notification.read = true;
-      this.updateUnreadCount();
+      this.dashboardService.markNotificationAsRead(notificationId).subscribe();
     }
   }
   
   markAllAsRead() {
-    this.notifications.forEach(n => n.read = true);
-    this.updateUnreadCount();
+    this.notifications.forEach(n => {
+      if (!n.read) {
+        this.dashboardService.markNotificationAsRead(n._id).subscribe();
+      }
+    });
   }
   
-  deleteNotification(notificationId: number) {
+  deleteNotification(notificationId: string) {
+    // This would need a delete endpoint in backend
     this.notifications = this.notifications.filter(n => n.id !== notificationId);
     this.updateUnreadCount();
   }
@@ -176,12 +215,21 @@ export class Dashboard implements OnInit {
   }
   
   filterUsers() {
-    this.filteredUsers = this.users.filter(user => {
-      const matchesSearch = user.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                           user.email.toLowerCase().includes(this.searchTerm.toLowerCase());
-      const matchesStatus = this.selectedStatus === 'all' || user.status === this.selectedStatus;
-      return matchesSearch && matchesStatus;
-    });
+    let filtered = this.users;
+    
+    if (this.searchTerm) {
+      filtered = filtered.filter(user => 
+        user.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(this.searchTerm.toLowerCase())
+      );
+    }
+    
+    if (this.selectedStatus !== 'all') {
+      filtered = filtered.filter(user => user.status === this.selectedStatus);
+    }
+    
+    // Update filtered users for template
+    this.filteredUsers = filtered;
   }
   
   getStatusColor(status: string): string {
@@ -216,23 +264,240 @@ export class Dashboard implements OnInit {
   }
   
   exportData() {
-    // Will implement with real API
-    alert('Export functionality will be connected to backend API');
+    let dataToExport: any[] = [];
+    
+    switch(this.selectedData) {
+      case 'users':
+        dataToExport = this.filteredUsers;
+        break;
+      case 'revenue':
+        dataToExport = this.monthlyRevenue;
+        break;
+      case 'activities':
+        dataToExport = this.recentActivities.map((activity, index) => ({
+          id: index + 1,
+          activity: activity,
+          timestamp: new Date().toISOString()
+        }));
+        break;
+    }
+    
+    if (this.exportFormat === 'csv') {
+      this.downloadCSV(dataToExport);
+    } else if (this.exportFormat === 'excel') {
+      this.downloadExcel(dataToExport);
+    } else if (this.exportFormat === 'pdf') {
+      this.downloadPDF(dataToExport);
+    }
+    
     this.closeExportModal();
   }
   
+  downloadCSV(data: any[]) {
+    if (data.length === 0) return;
+    
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => headers.map(header => row[header]).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${this.selectedData}_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+  
+  downloadExcel(data: any[]) {
+    if (data.length === 0) return;
+    
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join('\t'),
+      ...data.map(row => headers.map(header => row[header]).join('\t'))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${this.selectedData}_export_${new Date().toISOString().split('T')[0]}.xls`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+  
+  downloadPDF(data: any[]) {
+    if (data.length === 0) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    const headers = Object.keys(data[0]);
+    let htmlContent = `
+      <html>
+        <head>
+          <title>${this.selectedData.toUpperCase()} Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #333; }
+            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .date { text-align: right; color: #666; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${this.selectedData.toUpperCase()} Report</h1>
+            <div class="date">Generated: ${new Date().toLocaleDateString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                ${headers.map(header => `<th>${header.toUpperCase()}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map(row => 
+                `<tr>${headers.map(header => `<td>${row[header] || ''}</td>`).join('')}</tr>`
+              ).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.print();
+  }
+  
   generateReport() {
-    // Will implement with real API
-    alert('Report generation will be connected to backend API');
+    const reportData = {
+      summary: {
+        totalUsers: this.totalUsers,
+        totalOrders: this.totalOrders,
+        totalRevenue: this.totalRevenue,
+        activeUsers: this.activeUsers,
+        generatedDate: new Date().toLocaleDateString()
+      },
+      users: this.users,
+      revenue: this.monthlyRevenue,
+      activities: this.recentActivities
+    };
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    let htmlContent = `
+      <html>
+        <head>
+          <title>Dashboard Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1, h2 { color: #333; }
+            .summary { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 30px; }
+            .summary-item { display: inline-block; margin: 10px 20px 10px 0; }
+            .summary-label { font-weight: bold; color: #666; }
+            .summary-value { font-size: 1.2em; color: #333; }
+            table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .section { margin-bottom: 40px; }
+            .date { text-align: right; color: #666; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="date">Generated: ${new Date().toLocaleDateString()}</div>
+          <h1>Dashboard Report</h1>
+          
+          <div class="section">
+            <h2>Summary</h2>
+            <div class="summary">
+              <div class="summary-item">
+                <div class="summary-label">Total Users:</div>
+                <div class="summary-value">${reportData.summary.totalUsers.toLocaleString()}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Total Orders:</div>
+                <div class="summary-value">${reportData.summary.totalOrders.toLocaleString()}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Total Revenue:</div>
+                <div class="summary-value">${this.formatCurrency(reportData.summary.totalRevenue)}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Active Users:</div>
+                <div class="summary-value">${reportData.summary.activeUsers.toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="section">
+            <h2>User Data</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Join Date</th>
+                  <th>Orders</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${reportData.users.map(user => 
+                  `<tr>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td>${user.status}</td>
+                    <td>${user.joinDate}</td>
+                    <td>${user.orders}</td>
+                  </tr>`
+                ).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="section">
+            <h2>Revenue Trend</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${reportData.revenue.map(item => 
+                  `<tr>
+                    <td>${item.month}</td>
+                    <td>${this.formatCurrency(item.revenue)}</td>
+                  </tr>`
+                ).join('')}
+              </tbody>
+            </table>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.print();
   }
   
   // User profile management methods
-  viewUser(userId: number) {
-    this.selectedUser = this.users.find(u => u.id === userId);
+  viewUser(userId: string) {
+    this.selectedUser = this.users.find(u => u.id === userId) || null;
     this.showUserModal = true;
   }
   
-  editUser(userId: number) {
+  editUser(userId: string) {
     const user = this.users.find(u => u.id === userId);
     if (user) {
       this.editingUser = { ...user };
@@ -263,31 +528,16 @@ export class Dashboard implements OnInit {
   
   saveUser() {
     if (this.editingUser) {
-      const userIndex = this.users.findIndex(u => u.id === this.editingUser.id);
-      if (userIndex !== -1) {
-        this.users[userIndex] = {
-          ...this.users[userIndex],
-          ...this.userForm
-        };
-      }
+      this.dashboardService.updateUser(this.editingUser.id, this.userForm).subscribe();
     } else {
-      const newUser = {
-        id: Math.max(...this.users.map(u => u.id)) + 1,
-        ...this.userForm,
-        joinDate: new Date().toISOString().split('T')[0],
-        orders: 0
-      };
-      this.users.push(newUser);
+      this.dashboardService.createUser(this.userForm).subscribe();
     }
-    
-    this.filterUsers();
     this.closeUserModal();
   }
   
-  deleteUser(userId: number) {
+  deleteUser(userId: string) {
     if (confirm('Are you sure you want to delete this user?')) {
-      this.users = this.users.filter(u => u.id !== userId);
-      this.filterUsers();
+      this.dashboardService.deleteUser(userId).subscribe();
     }
   }
   
