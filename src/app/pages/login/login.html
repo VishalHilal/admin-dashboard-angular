@@ -6,15 +6,37 @@
       Welcome Back
     </h2>
 
+    <!-- Demo Credentials -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <p class="text-sm font-medium text-blue-800 mb-2">Demo Credentials:</p>
+      <div class="space-y-1 text-xs">
+        <button (click)="fillDemoCredentials('admin')" class="text-blue-600 hover:text-blue-800 underline block">
+          Admin: john@example.com / admin123
+        </button>
+        <button (click)="fillDemoCredentials('manager')" class="text-blue-600 hover:text-blue-800 underline block">
+          Manager: alice@example.com / manager123
+        </button>
+        <button (click)="fillDemoCredentials('user')" class="text-blue-600 hover:text-blue-800 underline block">
+          User: jane@example.com / user123
+        </button>
+      </div>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+      {{ errorMessage }}
+    </div>
+
     <form (ngSubmit)="login()" class="space-y-5">
 
       <div>
         <label class="block text-gray-600 mb-1">Email</label>
         <input
-          type="text"
+          type="email"
           [(ngModel)]="email"
           name="email"
           placeholder="Enter your email"
+          required
           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </div>
@@ -26,15 +48,24 @@
           [(ngModel)]="password"
           name="password"
           placeholder="Enter your password"
+          required
           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </div>
 
       <button
         type="submit"
-        class="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition duration-300"
+        [disabled]="isLoading || !email || !password"
+        class="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Login
+        <span *ngIf="!isLoading">Login</span>
+        <span *ngIf="isLoading" class="flex items-center justify-center">
+          <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Signing in...
+        </span>
       </button>
 
     </form> 
